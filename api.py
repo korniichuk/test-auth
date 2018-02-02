@@ -6,7 +6,10 @@ from pylibscrypt import scrypt_mcf, scrypt_mcf_check
 
 app = Flask(__name__)
 es = Elasticsearch()
-es.indices.create(index="accounts", ignore=400)
+mapping = {"mappings": {"company": {"properties": {"company_name": {"type":
+        "keyword", "index": True}, "business_email": {"type": "keyword",
+        "index": True}}}}}
+es.indices.create(index="accounts", ignore=400, body=mapping)
 
 @app.route("/api/auth/accounts", methods=["POST"])
 def new_account():
@@ -27,7 +30,8 @@ def new_account():
         abort(400) # missing arguments
     # Check company_name in elasticsearch
     try:
-        body={"query": {"match": {"company_name": company_name}}}
+        body = {"query": {"constant_score": {"filter": {"term": {
+                "company_name": company_name}}}}}
         res = es.search(index="accounts", doc_type="company", body=body)
     except Exception as e:
         app.logger.error("MatchCompanyNameError")
@@ -37,7 +41,8 @@ def new_account():
             abort(400) # existing company
     # Check business_email in elasticsearch
     try:
-        body={"query": {"match": {"business_email": business_email}}}
+        body = {"query": {"constant_score": {"filter": {"term": {
+                "business_email": business_email}}}}};
         res = es.search(index="accounts", doc_type="company", body=body)
     except Exception as e:
         app.logger.error("MatchBusinessEmailError")
