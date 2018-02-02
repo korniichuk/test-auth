@@ -1,0 +1,3 @@
+elasticsearch==6.1.1
+pylibscrypt==1.7.1
+Flask==0.12.2
