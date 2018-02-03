@@ -3,9 +3,12 @@
 from elasticsearch import Elasticsearch
 from flask import abort, Flask, g, jsonify, request
 from flask_httpauth import HTTPBasicAuth
+from itsdangerous import (TimedJSONWebSignatureSerializer as
+        Serializer, BadSignature, SignatureExpired)
 from pylibscrypt import scrypt_mcf, scrypt_mcf_check
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "Enter your secret key here..."
 auth = HTTPBasicAuth()
 es = Elasticsearch()
 mapping = {"mappings": {"company": {"properties": {"company_name": {"type":
@@ -33,7 +36,7 @@ def verify_password(company_name, password):
     else:
         if (res["hits"]["total"] == 0) or not check_password(password):
             return False # not existing company or wrong password
-    g.user = company_name
+    g.company_name = company_name
     return True
 
 @app.route("/api/auth/accounts", methods=["POST"])
@@ -88,6 +91,18 @@ def new_account():
         abort(400)
 
     return (jsonify({"company_name": company_name}))
+
+@app.route("/api/auth/token")
+@auth.login_required
+def get_auth_token():
+    """Get auth token"""
+
+    def generate_auth_token(company_name, expiration=600):
+        s = Serializer(app.config["SECRET_KEY"], expires_in=expiration)
+        return s.dumps({"company_name": company_name})
+
+    token = generate_auth_token(g.company_name)
+    return jsonify({"token": token.decode("ascii")})
 
 @app.route("/api/auth/protected")
 @auth.login_required
