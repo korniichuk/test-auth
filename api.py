@@ -17,25 +17,45 @@ mapping = {"mappings": {"company": {"properties": {"company_name": {"type":
 es.indices.create(index="accounts", ignore=400, body=mapping)
 
 @auth.verify_password
-def verify_password(company_name, password):
+def verify_password(company_name_or_token, password):
     """Verify password of account"""
 
-    def check_password(password):
-        hash_str = res["hits"]["hits"][0]["_source"]["password"]
-        hash_bytes = hash_str.encode("utf-8", "ignore")
+    def check_password(hash, password):
+        hash_bytes = hash.encode("utf-8", "ignore")
         password_bytes = password.encode("utf-8", "ignore")
         return scrypt_mcf_check(hash_bytes, password_bytes)
 
-    try:
-        body = {"query": {"constant_score": {"filter": {"term": {
-                "company_name": company_name}}}}}
-        res = es.search(index="accounts", doc_type="company", body=body)
-    except Exception as e:
-        app.logger.error("MatchCompanyNameError")
-        abort(400)
-    else:
-        if (res["hits"]["total"] == 0) or not check_password(password):
-            return False # not existing company or wrong password
+    def check_auth_token(token):
+        s = Serializer(app.config["SECRET_KEY"])
+        try:
+            data = s.loads(token)
+        except SignatureExpired:
+            return None # valid expired token
+        except BadSignature:
+            return None # invalid token
+        company_name = data["company_name"]
+        return company_name
+
+    # Try to authenticate by auth token
+    company_name = check_auth_token(company_name_or_token)
+    if not company_name:
+        # Try to authenticate with company_name and password
+        company_name = company_name_or_token
+        try:
+            body = {"query": {"constant_score": {"filter": {"term": {
+                    "company_name": company_name}}}}}
+            res = es.search(index="accounts", doc_type="company", body=body)
+        except Exception as e:
+            app.logger.error("MatchCompanyNameError")
+            abort(400)
+        else:
+            exists = res["hits"]["total"]
+            if not exists:
+                return False # not existing company
+            else:
+                hash = res["hits"]["hits"][0]["_source"]["password"]
+                if not check_password(hash, password):
+                    return False # wrong password
     g.company_name = company_name
     return True
 
@@ -106,7 +126,7 @@ def get_auth_token():
 
 @app.route("/api/auth/protected")
 @auth.login_required
-def get_resource():
+def get_protected_resource():
     return "Hello, World"
 
 if __name__ == "__main__":
