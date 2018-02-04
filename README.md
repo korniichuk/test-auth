@@ -9,6 +9,8 @@
 
 **[API Docs](#api-docs)**
 
+**[Examples](#examples)**
+
 ## Installation
 ```
 $ git clone https://github.com/korniichuk/test-auth.git
@@ -26,6 +28,24 @@ $ docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" \
 ```
 
 ## Run API
+Please, check one more time that Elasticsearch was ran successfully on http://localhost:9200/. Example output:
+```
+{
+  "name" : "uEoEr2L",
+  "cluster_name" : "docker-cluster",
+  "cluster_uuid" : "HDd7eS2KSJaDgss13oBJ8Q",
+  "version" : {
+    "number" : "6.1.2",
+    "build_hash" : "5b1fea5",
+    "build_date" : "2018-01-10T02:35:59.208Z",
+    "build_snapshot" : false,
+    "lucene_version" : "7.1.0",
+    "minimum_wire_compatibility_version" : "5.6.0",
+    "minimum_index_compatibility_version" : "5.0.0"
+  },
+  "tagline" : "You Know, for Search"
+}
+```
 ```
 (venv) $ python3 api.py
 ```
@@ -54,3 +74,6 @@ $ docker run -d -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" \
     This request must be authenticated using a HTTP Basic Authentication header. Instead of username and password, the client can provide a valid authentication token in the username field. If using an authentication token the password field is not used and can be set to any value.<br>
     On success a JSON object with data for the authenticated user is returned.<br>
     On failure status code 401 (unauthorized) is returned.
+
+## Examples
+Please import [test-auth.postman_collection.json](test-auth.postman_collection.json) file to [Postman](https://www.getpostman.com/).
