@@ -110,7 +110,7 @@ def new_account():
     except Exception as e:
         app.logger.error("CreatCompanyError")
         abort(400)
-    return (jsonify({"company_name": company_name}))
+    return (jsonify({"company_name": company_name})), 201
 
 @app.route("/api/auth/token")
 @auth.login_required
@@ -122,7 +122,7 @@ def get_auth_token():
         return s.dumps({"company_name": company_name})
 
     token = generate_auth_token(g.company_name)
-    return jsonify({"token": token.decode("ascii")})
+    return jsonify({"token": token.decode("ascii"), "duration": 600})
 
 @app.route("/api/auth/protected")
 @auth.login_required
