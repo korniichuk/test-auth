@@ -60,6 +60,7 @@ Please, check one more time that Elasticsearch was ran successfully on http://lo
     Notes:
     - The password is hashed by scrypt KDF before it is stored in Elasticsearch. Once hashed, the original password is discarded.
     - In a production deployment secure HTTP must be used to protect the password in transit.
+    - In a production deployment `md5` field based on secret key and `timestamp` field must be used. Example: [goo.gl/395zAB](https://goo.gl/395zAB).
 
 - GET **/api/auth/token**
 
