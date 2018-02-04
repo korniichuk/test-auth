@@ -70,13 +70,13 @@ def new_account():
     password = request.json.get("password")
     # Password hash by scrypt function
     password_bytes = password.encode("utf-8", "ignore")
-    hash_str = scrypt_mcf(password_bytes).decode("utf-8", "ignore")
+    hash = scrypt_mcf(password_bytes).decode("utf-8", "ignore")
     # Check requered fields
     if ((company_name is None) or (contact_person is None) or
             (business_email is None) or (contact_phone_number is None) or
             (password is None)):
         abort(400) # missing arguments
-    # Check company_name in elasticsearch
+    # Check company_name in Elasticsearch
     try:
         body = {"query": {"constant_score": {"filter": {"term": {
                 "company_name": company_name}}}}}
@@ -85,9 +85,10 @@ def new_account():
         app.logger.error("MatchCompanyNameError")
         abort(400)
     else:
-        if res["hits"]["total"] > 0:
+        exists = res["hits"]["total"]
+        if exists:
             abort(400) # existing company
-    # Check business_email in elasticsearch
+    # Check business_email in Elasticsearch
     try:
         body = {"query": {"constant_score": {"filter": {"term": {
                 "business_email": business_email}}}}};
@@ -96,20 +97,19 @@ def new_account():
         app.logger.error("MatchBusinessEmailError")
         abort(400)
     else:
-        if res["hits"]["total"] > 0:
+        exists = res["hits"]["total"]
+        if exists:
             abort(400) # existing business_email
     # Add company to elasticsearch
     try:
         body={"company_name": company_name, "contact_person": contact_person,
               "business_email": business_email,
-              "contact_phone_number" : contact_phone_number,
-              "password": hash_str}
+              "contact_phone_number" : contact_phone_number, "password": hash}
         res = es.create(index="accounts", doc_type="company", id=company_name,
                         body=body)
     except Exception as e:
         app.logger.error("CreatCompanyError")
         abort(400)
-
     return (jsonify({"company_name": company_name}))
 
 @app.route("/api/auth/token")
@@ -127,7 +127,9 @@ def get_auth_token():
 @app.route("/api/auth/protected")
 @auth.login_required
 def get_protected_resource():
-    return "Hello, World"
+    """Get protected resource"""
+
+    return jsonify({"company_name": g.company_name})
 
 if __name__ == "__main__":
     app.run(debug=True)
